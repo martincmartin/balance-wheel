@@ -119,10 +119,14 @@ class ImageViewer(QGraphicsView):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # Replace 'your_image.jpg' with your actual file path
     viewer = ImageViewer(frames[0])
     viewer.setWindowTitle("Draggable Line Over Image")
-    viewer.resize(800, 600)
+
+    screen = app.primaryScreen().availableGeometry()
+    img_h, img_w = frames[0].shape[:2]
+    viewer.resize(min(img_w, screen.width()), min(img_h, screen.height()))
+
     viewer.show()
+    viewer.fitInView(viewer.pixmap_item, Qt.KeepAspectRatio)
 
     sys.exit(app.exec())
