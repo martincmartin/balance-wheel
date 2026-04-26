@@ -6,15 +6,17 @@ from PySide6.QtWidgets import (
     QApplication,
     QWidget,
     QHBoxLayout,
+    QVBoxLayout,
     QLabel,
     QGraphicsView,
     QGraphicsItem,
     QGraphicsScene,
     QGraphicsLineItem,
     QGraphicsEllipseItem,
+    QGraphicsPathItem,
 )
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QPainter
+from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtGui import QImage, QPixmap, QPen, QColor, QPainter, QPainterPath
 
 VIDEO_PATH = "PXL_20260417_113052141.mp4"
 
@@ -73,16 +75,20 @@ class Handle(QGraphicsEllipseItem):
 
 
 class MovableLine(QGraphicsItem):
-    """Two connected line segments with three draggable handles."""
+    """Two connected line segments with three draggable handles and an angle arc."""
 
-    def __init__(self, x1, y1, x2, y2, x3, y3):
+    def __init__(self, x1, y1, x2, y2, x3, y3, angle_label):
         super().__init__()
         pen = QPen(QColor("white"), 10)
+        self.angle_label = angle_label
 
         self.seg1 = QGraphicsLineItem(x1, y1, x2, y2, self)
         self.seg1.setPen(pen)
         self.seg2 = QGraphicsLineItem(x2, y2, x3, y3, self)
         self.seg2.setPen(pen)
+
+        self.arc = QGraphicsPathItem(self)
+        self.arc.setPen(QPen(QColor("white"), 5))
 
         self.p1 = Handle(self, 0)
         self.p2 = Handle(self, 1)
@@ -90,15 +96,36 @@ class MovableLine(QGraphicsItem):
         self.p1.setPos(x1, y1)
         self.p2.setPos(x2, y2)
         self.p3.setPos(x3, y3)
+        self.p2.setBrush(QColor(160, 20, 40))
+
+        self._draw_arc(QPointF(x1, y1), QPointF(x2, y2), QPointF(x3, y3))
+
+    def _draw_arc(self, p1, p2, p3):
+        r = 80
+        a1 = math.degrees(math.atan2(-(p1.y() - p2.y()), p1.x() - p2.x()))
+        a2 = math.degrees(math.atan2(-(p3.y() - p2.y()), p3.x() - p2.x()))
+        span = a2 - a1
+        while span > 180: span -= 360
+        while span <= -180: span += 360
+        rect = QRectF(-r, -r, 2 * r, 2 * r)
+        path = QPainterPath()
+        path.arcMoveTo(rect, a1)
+        path.arcTo(rect, a1, span)
+        self.arc.setPath(path)
+        self.arc.setPos(p2)
+        self.angle_label.setText(f"Angle: {round(abs(span))}°")
 
     def update_handle(self, index, pos):
         if index == 0:
             l = self.seg1.line(); l.setP1(pos); self.seg1.setLine(l)
+            self._draw_arc(pos, self.p2.pos(), self.p3.pos())
         elif index == 1:
             l = self.seg1.line(); l.setP2(pos); self.seg1.setLine(l)
             l = self.seg2.line(); l.setP1(pos); self.seg2.setLine(l)
+            self._draw_arc(self.p1.pos(), pos, self.p3.pos())
         else:
             l = self.seg2.line(); l.setP2(pos); self.seg2.setLine(l)
+            self._draw_arc(self.p1.pos(), self.p2.pos(), pos)
 
     def boundingRect(self):
         return self.childrenBoundingRect()
@@ -108,7 +135,7 @@ class MovableLine(QGraphicsItem):
 
 
 class ImageViewer(QGraphicsView):
-    def __init__(self, frames, frame_label):
+    def __init__(self, frames, frame_label, angle_label):
         super().__init__()
         self.frames = frames
         self.frame_index = 0
@@ -120,7 +147,7 @@ class ImageViewer(QGraphicsView):
         pixmap = cv_to_pixmap(frames[0])
         self.pixmap_item = self.scene.addPixmap(pixmap)
 
-        self.line_item = MovableLine(50, 50, 200, 200, 350, 350)
+        self.line_item = MovableLine(50, 50, 200, 200, 350, 350, angle_label)
         self.scene.addItem(self.line_item)
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -150,16 +177,23 @@ if __name__ == "__main__":
     layout = QHBoxLayout(window)
     layout.setContentsMargins(0, 0, 0, 0)
 
-    label = QLabel("Frame: 0")
-    label.setAlignment(Qt.AlignmentFlag.AlignTop)
+    frame_label = QLabel("Frame: 0")
+    angle_label = QLabel("Angle: 0.0°")
+    for lbl in (frame_label, angle_label):
+        lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-    viewer = ImageViewer(frames, label)
+    viewer = ImageViewer(frames, frame_label, angle_label)
     layout.addWidget(viewer)
-    layout.addWidget(label)
+
+    sidebar = QVBoxLayout()
+    sidebar.addWidget(frame_label)
+    sidebar.addWidget(angle_label)
+    sidebar.addStretch()
+    layout.addLayout(sidebar)
 
     screen = app.primaryScreen().availableGeometry()
     img_h, img_w = frames[0].shape[:2]
-    label_w = label.sizeHint().width()
+    label_w = max(frame_label.sizeHint().width(), angle_label.sizeHint().width())
     scale = min((screen.width() - label_w) / img_w, screen.height() / img_h, 1.0)
     window.resize(int(img_w * scale) + label_w, int(img_h * scale))
 
