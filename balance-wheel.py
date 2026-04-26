@@ -105,8 +105,10 @@ class MovableLine(QGraphicsItem):
         a1 = math.degrees(math.atan2(-(p1.y() - p2.y()), p1.x() - p2.x()))
         a2 = math.degrees(math.atan2(-(p3.y() - p2.y()), p3.x() - p2.x()))
         span = a2 - a1
-        while span > 180: span -= 360
-        while span <= -180: span += 360
+        while span > 180:
+            span -= 360
+        while span <= -180:
+            span += 360
         rect = QRectF(-r, -r, 2 * r, 2 * r)
         path = QPainterPath()
         path.arcMoveTo(rect, a1)
@@ -117,14 +119,22 @@ class MovableLine(QGraphicsItem):
 
     def update_handle(self, index, pos):
         if index == 0:
-            l = self.seg1.line(); l.setP1(pos); self.seg1.setLine(l)
+            l = self.seg1.line()
+            l.setP1(pos)
+            self.seg1.setLine(l)
             self._draw_arc(pos, self.p2.pos(), self.p3.pos())
         elif index == 1:
-            l = self.seg1.line(); l.setP2(pos); self.seg1.setLine(l)
-            l = self.seg2.line(); l.setP1(pos); self.seg2.setLine(l)
+            l = self.seg1.line()
+            l.setP2(pos)
+            self.seg1.setLine(l)
+            l = self.seg2.line()
+            l.setP1(pos)
+            self.seg2.setLine(l)
             self._draw_arc(self.p1.pos(), pos, self.p3.pos())
         else:
-            l = self.seg2.line(); l.setP2(pos); self.seg2.setLine(l)
+            l = self.seg2.line()
+            l.setP2(pos)
+            self.seg2.setLine(l)
             self._draw_arc(self.p1.pos(), self.p2.pos(), pos)
 
     def boundingRect(self):
