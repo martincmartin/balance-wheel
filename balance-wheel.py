@@ -4,6 +4,9 @@ import cv2 as cv
 
 from PySide6.QtWidgets import (
     QApplication,
+    QWidget,
+    QHBoxLayout,
+    QLabel,
     QGraphicsView,
     QGraphicsItem,
     QGraphicsScene,
@@ -94,10 +97,11 @@ class MovableLine(QGraphicsLineItem):
 
 
 class ImageViewer(QGraphicsView):
-    def __init__(self, frames):
+    def __init__(self, frames, frame_label):
         super().__init__()
         self.frames = frames
         self.frame_index = 0
+        self.frame_label = frame_label
 
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
@@ -110,17 +114,16 @@ class ImageViewer(QGraphicsView):
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-    def update_frame(self, new_frame):
-        pixmap = cv_to_pixmap(new_frame)
-        self.pixmap_item.setPixmap(pixmap)
+    def show_frame(self, index):
+        self.frame_index = index
+        self.pixmap_item.setPixmap(cv_to_pixmap(self.frames[index]))
+        self.frame_label.setText(f"Frame: {index}")
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Right:
-            self.frame_index = min(self.frame_index + 1, len(self.frames) - 1)
-            self.update_frame(self.frames[self.frame_index])
+            self.show_frame(min(self.frame_index + 1, len(self.frames) - 1))
         elif event.key() == Qt.Key.Key_Left:
-            self.frame_index = max(self.frame_index - 1, 0)
-            self.update_frame(self.frames[self.frame_index])
+            self.show_frame(max(self.frame_index - 1, 0))
         else:
             super().keyPressEvent(event)
 
@@ -128,14 +131,23 @@ class ImageViewer(QGraphicsView):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    viewer = ImageViewer(frames)
-    viewer.setWindowTitle("Draggable Line Over Image")
+    window = QWidget()
+    window.setWindowTitle("Draggable Line Over Image")
+    layout = QHBoxLayout(window)
+    layout.setContentsMargins(0, 0, 0, 0)
+
+    label = QLabel("Frame: 0")
+    label.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+    viewer = ImageViewer(frames, label)
+    layout.addWidget(viewer)
+    layout.addWidget(label)
 
     screen = app.primaryScreen().availableGeometry()
     img_h, img_w = frames[0].shape[:2]
-    viewer.resize(min(img_w, screen.width()), min(img_h, screen.height()))
+    window.resize(min(img_w + label.sizeHint().width(), screen.width()), min(img_h, screen.height()))
 
-    viewer.show()
+    window.show()
     viewer.fitInView(viewer.pixmap_item, Qt.KeepAspectRatio)
 
     sys.exit(app.exec())
