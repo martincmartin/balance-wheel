@@ -113,6 +113,9 @@ class ImageViewer(QGraphicsView):
         self.scene.addItem(self.line_item)
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setFrameStyle(0)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
     def show_frame(self, index):
         self.frame_index = index
@@ -145,7 +148,9 @@ if __name__ == "__main__":
 
     screen = app.primaryScreen().availableGeometry()
     img_h, img_w = frames[0].shape[:2]
-    window.resize(min(img_w + label.sizeHint().width(), screen.width()), min(img_h, screen.height()))
+    label_w = label.sizeHint().width()
+    scale = min((screen.width() - label_w) / img_w, screen.height() / img_h, 1.0)
+    window.resize(int(img_w * scale) + label_w, int(img_h * scale))
 
     window.show()
     viewer.fitInView(viewer.pixmap_item, Qt.KeepAspectRatio)
