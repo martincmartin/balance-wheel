@@ -157,7 +157,7 @@ class ImageViewer(QGraphicsView):
         pixmap = cv_to_pixmap(frames[0])
         self.pixmap_item = self.scene.addPixmap(pixmap)
 
-        self.line_item = MovableLine(50, 50, 200, 200, 350, 350, angle_label)
+        self.line_item = MovableLine(50, 50, 200, 200, 350, 50, angle_label)
         self.scene.addItem(self.line_item)
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
