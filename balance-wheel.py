@@ -59,8 +59,8 @@ class Handle(QGraphicsEllipseItem):
     """The draggable endpoints of the line."""
 
     def __init__(self, parent, index):
-        super().__init__(-6, -6, 12, 12, parent)
-        self.setBrush(QColor("cyan"))
+        super().__init__(-15, -15, 30, 30, parent)
+        self.setBrush(QColor("white"))
         self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemIsMovable)
         self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         self.index = index  # 0 for start, 1 for end
@@ -78,7 +78,7 @@ class MovableLine(QGraphicsLineItem):
 
     def __init__(self, x1, y1, x2, y2):
         super().__init__(x1, y1, x2, y2)
-        pen = QPen(QColor("yellow"), 3)
+        pen = QPen(QColor("white"), 10)
         self.setPen(pen)
 
         # Create handles at the start and end points
