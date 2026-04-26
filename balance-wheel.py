@@ -68,32 +68,43 @@ class Handle(QGraphicsEllipseItem):
     def itemChange(self, change, value):
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             if self.parentItem():
-                # Tell the parent line to update its coordinates when the handle moves
-                self.parentItem().update_line(self.index, value)
+                self.parentItem().update_handle(self.index, value)
         return super().itemChange(change, value)
 
 
-class MovableLine(QGraphicsLineItem):
-    """A line with two interactive handles."""
+class MovableLine(QGraphicsItem):
+    """Two connected line segments with three draggable handles."""
 
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(x1, y1, x2, y2)
+    def __init__(self, x1, y1, x2, y2, x3, y3):
+        super().__init__()
         pen = QPen(QColor("white"), 10)
-        self.setPen(pen)
 
-        # Create handles at the start and end points
+        self.seg1 = QGraphicsLineItem(x1, y1, x2, y2, self)
+        self.seg1.setPen(pen)
+        self.seg2 = QGraphicsLineItem(x2, y2, x3, y3, self)
+        self.seg2.setPen(pen)
+
         self.p1 = Handle(self, 0)
         self.p2 = Handle(self, 1)
+        self.p3 = Handle(self, 2)
         self.p1.setPos(x1, y1)
         self.p2.setPos(x2, y2)
+        self.p3.setPos(x3, y3)
 
-    def update_line(self, index, pos):
-        line = self.line()
+    def update_handle(self, index, pos):
         if index == 0:
-            line.setP1(pos)
+            l = self.seg1.line(); l.setP1(pos); self.seg1.setLine(l)
+        elif index == 1:
+            l = self.seg1.line(); l.setP2(pos); self.seg1.setLine(l)
+            l = self.seg2.line(); l.setP1(pos); self.seg2.setLine(l)
         else:
-            line.setP2(pos)
-        self.setLine(line)
+            l = self.seg2.line(); l.setP2(pos); self.seg2.setLine(l)
+
+    def boundingRect(self):
+        return self.childrenBoundingRect()
+
+    def paint(self, painter, option, widget):
+        pass
 
 
 class ImageViewer(QGraphicsView):
@@ -109,7 +120,7 @@ class ImageViewer(QGraphicsView):
         pixmap = cv_to_pixmap(frames[0])
         self.pixmap_item = self.scene.addPixmap(pixmap)
 
-        self.line_item = MovableLine(50, 50, 200, 200)
+        self.line_item = MovableLine(50, 50, 200, 200, 350, 350)
         self.scene.addItem(self.line_item)
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
