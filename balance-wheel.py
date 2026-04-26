@@ -94,32 +94,41 @@ class MovableLine(QGraphicsLineItem):
 
 
 class ImageViewer(QGraphicsView):
-    def __init__(self, frame):
+    def __init__(self, frames):
         super().__init__()
+        self.frames = frames
+        self.frame_index = 0
+
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
 
-        # 1. Load the Image
-        pixmap = cv_to_pixmap(frame)
-
+        pixmap = cv_to_pixmap(frames[0])
         self.pixmap_item = self.scene.addPixmap(pixmap)
 
-        # 2. Add the Movable Line
         self.line_item = MovableLine(50, 50, 200, 200)
         self.scene.addItem(self.line_item)
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
 
     def update_frame(self, new_frame):
-        """Call this if you are reading a video stream"""
         pixmap = cv_to_pixmap(new_frame)
         self.pixmap_item.setPixmap(pixmap)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Right:
+            self.frame_index = min(self.frame_index + 1, len(self.frames) - 1)
+            self.update_frame(self.frames[self.frame_index])
+        elif event.key() == Qt.Key.Key_Left:
+            self.frame_index = max(self.frame_index - 1, 0)
+            self.update_frame(self.frames[self.frame_index])
+        else:
+            super().keyPressEvent(event)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    viewer = ImageViewer(frames[0])
+    viewer = ImageViewer(frames)
     viewer.setWindowTitle("Draggable Line Over Image")
 
     screen = app.primaryScreen().availableGeometry()
