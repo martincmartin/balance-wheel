@@ -82,6 +82,11 @@ class MovableLine(QGraphicsItem):
         pen = QPen(QColor("white"), 10)
         self.angle_label = angle_label
 
+        a1 = math.degrees(math.atan2(-(y1 - y2), x1 - x2))
+        a2 = math.degrees(math.atan2(-(y3 - y2), x3 - x2))
+        self._span = self._normalize(a2 - a1)
+        self._prev_short_span = self._span
+
         self.seg1 = QGraphicsLineItem(x1, y1, x2, y2, self)
         self.seg1.setPen(pen)
         self.seg2 = QGraphicsLineItem(x2, y2, x3, y3, self)
@@ -100,22 +105,27 @@ class MovableLine(QGraphicsItem):
 
         self._draw_arc(QPointF(x1, y1), QPointF(x2, y2), QPointF(x3, y3))
 
+    @staticmethod
+    def _normalize(angle):
+        while angle > 180: angle -= 360
+        while angle <= -180: angle += 360
+        return angle
+
     def _draw_arc(self, p1, p2, p3):
         r = 80
         a1 = math.degrees(math.atan2(-(p1.y() - p2.y()), p1.x() - p2.x()))
         a2 = math.degrees(math.atan2(-(p3.y() - p2.y()), p3.x() - p2.x()))
-        span = a2 - a1
-        while span > 180:
-            span -= 360
-        while span <= -180:
-            span += 360
+        new_short = self._normalize(a2 - a1)
+        delta = self._normalize(new_short - self._prev_short_span)
+        self._span += delta
+        self._prev_short_span = new_short
         rect = QRectF(-r, -r, 2 * r, 2 * r)
         path = QPainterPath()
         path.arcMoveTo(rect, a1)
-        path.arcTo(rect, a1, span)
+        path.arcTo(rect, a1, self._span)
         self.arc.setPath(path)
         self.arc.setPos(p2)
-        self.angle_label.setText(f"Angle: {round(abs(span))}°")
+        self.angle_label.setText(f"Angle: {round(abs(self._span))}°")
 
     def update_handle(self, index, pos):
         if index == 0:
